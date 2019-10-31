@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Riot Player
+Comment=Qtwebengine wrapper for Riot, because electron sucks.
+GenericName=Internet Messenger
+Exec=@@prefix@@/bin/riot-player
+Icon=@@prefix@@/share/icons/riot-player.icon
+Terminal=false
+Type=Application
+Categories=Network;InstantMessaging;
