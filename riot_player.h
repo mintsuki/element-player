@@ -25,7 +25,7 @@ class riot_player : public QMainWindow
     Q_OBJECT
 
 public:
-    explicit riot_player(QWidget *parent = 0);
+    explicit riot_player(const char *baseUrl, QWidget *parent = 0);
     ~riot_player();
 
 private slots:

@@ -8,10 +8,14 @@
 #include <QStandardPaths>
 #include <QDir>
 #include <QFile>
+#include <unistd.h>
+#include <signal.h>
 
-static QUrl baseUrl("https://riot.im/app/");
+static const char *baseUrl;
 
 static RiotPlayerPage *globalPageToGetClickUrl;
+
+static QFile *lock;
 
 RiotPlayerPage::RiotPlayerPage(QWebEngineProfile *profile, QObject *parent) : QWebEnginePage(profile, parent) {}
 RiotPlayerPage::RiotPlayerPage(QObject *parent) : QWebEnginePage(parent) {}
@@ -25,7 +29,7 @@ bool RiotPlayerPage::acceptNavigationRequest(const QUrl &url, QWebEnginePage::Na
     qDebug() << "acceptNavigationRequest url: " << url << " type: " << type << " isMainFrame: " << isMainFrame;
     if (isMainFrame) {
         // Exception for base link
-        if (url == baseUrl)
+        if (url == QUrl(baseUrl))
             goto pass;
         QDesktopServices::openUrl(url);
         return false;
@@ -35,26 +39,44 @@ pass:
     return QWebEnginePage::acceptNavigationRequest(url, type, isMainFrame);
 }
 
-riot_player::riot_player(QWidget *parent) :
+[[noreturn]] void lockDeleteHandler(int a) {
+    qInfo() << "Catched signal: " << a;
+    lock->remove();
+    exit(0);
+}
+
+riot_player::riot_player(const char *baseUrl_arg, QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::riot_player)
 {
-    QDir configDirectory(QStandardPaths::writableLocation(QStandardPaths::ConfigLocation));
+    baseUrl = baseUrl_arg;
 
     // Check the lock for other open instances
-    QFile lock(configDirectory.absoluteFilePath(QStringLiteral("riot-player/lock")));
-    if (lock.open(QIODevice::ReadOnly)) {
+    lock = new QFile(QString("/tmp/riot-player-lock.") + QString::number(getuid()));
+    if (lock->open(QIODevice::ReadOnly)) {
         // The lock is already acquired
         QMessageBox::critical(this, "Application running",
                                   "Another instance of riot-player was detected running.",
                                   QMessageBox::Ok);
-        lock.close();
+        lock->close();
         exit(1);
     }
-    while (!lock.open(QIODevice::WriteOnly)) {
-        configDirectory.mkdir(configDirectory.absoluteFilePath("riot-player"));
+    if (!lock->open(QIODevice::WriteOnly)) {
+        // Something happened
+        // Something happened
+        exit(2);
     }
-    lock.close();
+
+    // Hook lock for SIGINT, so in case of Ctrl+C or similar we delete the lock.
+    struct sigaction sigIntHandler;
+
+    sigIntHandler.sa_handler = lockDeleteHandler;
+    sigemptyset(&sigIntHandler.sa_mask);
+    sigIntHandler.sa_flags = 0;
+
+    sigaction(SIGINT, &sigIntHandler, nullptr);
+
+    lock->close();
 
     ui->setupUi(this);
 
@@ -65,6 +87,7 @@ riot_player::riot_player(QWidget *parent) :
 
     showMaximized();
 
+    QDir configDirectory(QStandardPaths::writableLocation(QStandardPaths::ConfigLocation));
     QFile css(configDirectory.absoluteFilePath(QStringLiteral("riot-player/custom.css")));
     if (css.open(QIODevice::ReadOnly | QIODevice::Text)) {
         QByteArray source = css.readAll();
@@ -97,10 +120,7 @@ riot_player::riot_player(QWidget *parent) :
 
 riot_player::~riot_player()
 {
-    QDir configDirectory(QStandardPaths::writableLocation(QStandardPaths::ConfigLocation));
-    QFile lock(configDirectory.absoluteFilePath(QStringLiteral("riot-player/lock")));
-
-    lock.remove();
+    lock->remove();
 
     delete globalPageToGetClickUrl;
     delete ui->webEngineView->page();
