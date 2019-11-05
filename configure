@@ -32,8 +32,15 @@ EOF
 	esac
 done
 
-sed "s|@@prefix@@|$PREFIX|g" < Makefile.in > Makefile
-sed "s|@@prefix@@|$PREFIX|g" < riot-player.desktop.in > riot-player.desktop
-printf "Prefix: $PREFIX\n"
+git clone https://github.com/mintsuki/generic-webplayer.git
 
-exit 0
+cp riot-player.icon generic-webplayer/src/player.icon
+cp riot-player.desktop generic-webplayer/src/player.desktop
+cd generic-webplayer
+./configure \
+        --prefix="$PREFIX" \
+        --webapp-url="https://riot.im/app/" \
+        --player-name="riot-player" \
+        --player-nice-name="Riot Player"
+
+printf "Prefix: $PREFIX\n"
