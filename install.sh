@@ -10,15 +10,14 @@ PREFIX="/usr/local"
 [ -d generic-webplayer ] && cd generic-webplayer && git pull && cd ..
 
 rm -rf build && mkdir build && cd build
-cmake ../generic-webplayer/src \
+cmake ../generic-webplayer \
+    -DCMAKE_INSTALL_PREFIX="$PREFIX" \
     -DPLAYER_NAME="riot-player" \
     -DPLAYER_NICE_NAME="Riot Player" \
     -DPLAYER_WEBAPP_URL="https://riot.im/app/"
 make
+make install
 cd ..
-
-install -d "${PREFIX}/bin"
-install -s build/riot-player "${PREFIX}/bin/riot-player"
 
 install -d "${PREFIX}/share/applications"
 cat <<EOF >"${PREFIX}/share/applications/riot-player.desktop"
