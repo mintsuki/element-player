@@ -1,11 +1,11 @@
-Riot Player
+Element Player
 ======
 
 ### Build Dependencies
 
 #### Debian & Ubuntu
 
-On Debian and Ubuntu, riot-player depends on the following packages:
+On Debian and Ubuntu, element-player depends on the following packages:
 
 `sudo apt install build-essential cmake qtbase5-dev qt5-default qtwebengine5-dev xdg-utils`
 
